@@ -14,4 +14,6 @@ interface UserRepository {
 
     suspend fun getStore(): RepositoryResult<Store>
 
+    suspend fun clearUserData()
+
 }

@@ -68,4 +68,8 @@ class UserRepositoryImpl(
             userManager.getStoreUuid(), userManager.getStoreName()
         ))
     }
+
+    override suspend fun clearUserData() {
+        userManager.clearData()
+    }
 }

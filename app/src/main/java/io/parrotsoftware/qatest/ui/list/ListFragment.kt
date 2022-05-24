@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import io.parrotsoftware.qa_network.interactors.impl.NetworkInteractorImpl
 import io.parrotsoftware.qatest.R
 import io.parrotsoftware.qatest.databinding.FragmentListBinding
@@ -17,6 +18,8 @@ import io.parrotsoftware.qatest.common.toast
 import io.parrotsoftware.qatest.data.managers.impl.UserManagerImpl
 import io.parrotsoftware.qatest.data.repositories.impl.ProductRepositoryImpl
 import io.parrotsoftware.qatest.data.repositories.impl.UserRepositoryImpl
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 
 class ListFragment :
@@ -75,7 +78,10 @@ class ListFragment :
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.menu_logout -> {
-                TODO("Implement")
+                lifecycleScope.launch(Dispatchers.IO) {
+                    viewModel.userRepository.clearUserData()
+                }
+                requireActivity().finish()
             }
         }
         return super.onOptionsItemSelected(item)

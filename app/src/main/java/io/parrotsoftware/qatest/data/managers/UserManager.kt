@@ -15,4 +15,6 @@ interface UserManager {
     fun getStoreName(): String
 
     fun isAuth(): Boolean
+
+    fun clearData()
 }

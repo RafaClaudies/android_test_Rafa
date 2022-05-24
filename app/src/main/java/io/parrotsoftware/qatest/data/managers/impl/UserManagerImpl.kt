@@ -26,6 +26,10 @@ class UserManagerImpl(ctx: Context) : UserManager, PrefsStorage(ctx, "ParrotPref
 
     override fun isAuth() = getString(KEY_ACCESS).isNotBlank()
 
+    override fun clearData() {
+        clear()
+    }
+
     private companion object {
         const val KEY_ACCESS = "key_access"
         const val KEY_REFRESH = "key_refresh"
