@@ -58,13 +58,13 @@ class ListFragment :
         observe(viewModel.getViewState(), ::onViewState)
 
         binding.recyclerProducts.adapter = categoryController.adapter
-        binding.swipeProducts.setOnRefreshListener { viewModel.fetchProducts() }
+        binding.swipeProducts.setOnRefreshListener { viewModel.fetchProducts(requireContext()) }
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        viewModel.initView()
+        viewModel.initView(requireContext())
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {

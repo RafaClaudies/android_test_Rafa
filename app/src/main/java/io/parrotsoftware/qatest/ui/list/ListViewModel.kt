@@ -1,14 +1,21 @@
 package io.parrotsoftware.qatest.ui.list
 
+import android.content.Context
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Transformations
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.parrotsoftware.qatest.data.domain.Category
 import io.parrotsoftware.qatest.data.domain.Product
+import io.parrotsoftware.qatest.data.entities.CategoryEntity
+import io.parrotsoftware.qatest.data.entities.ProductEntity
+import io.parrotsoftware.qatest.data.repositories.ProductDao
 import io.parrotsoftware.qatest.data.repositories.ProductRepository
 import io.parrotsoftware.qatest.data.repositories.UserRepository
+import io.parrotsoftware.qatest.data.repositories.room.ProductsDB
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class ListViewModel : ViewModel(), LifecycleObserver {
@@ -25,14 +32,16 @@ class ListViewModel : ViewModel(), LifecycleObserver {
 
     private var products = mutableListOf<Product>()
     private val categoriesExpanded = mutableMapOf<String, Boolean>()
+    private lateinit var dbm: ProductDao
 
 
-    fun initView() {
-        fetchProducts()
+    fun initView(context: Context) {
+        fetchProducts(context)
     }
 
-    fun fetchProducts() {
+    fun fetchProducts(context: Context) {
         _viewState.value = ListViewState.Loading
+        dbm = ProductsDB.getInstance(context)!!.productDao()
 
         viewModelScope.launch {
             val credentials = userRepository.getCredentials()
@@ -49,12 +58,20 @@ class ListViewModel : ViewModel(), LifecycleObserver {
             )
 
             if (response.isError) {
-                _viewState.value = ListViewState.ErrorLoadingItems
+                viewModelScope.launch(Dispatchers.IO) {
+                    val listProducts = dbm.getAllCategories()
+                    if (listProducts.isNullOrEmpty()) {
+                        _viewState.value = ListViewState.ErrorLoadingItems
+                    } else {
+                        mapProductsBD(listProducts)
+                    }
+                }
                 return@launch
             }
 
             products = response.requiredResult.toMutableList()
             val expandedCategories = createCategoriesList()
+            saveObjects(products)
             _viewState.value = ListViewState.ItemsLoaded(expandedCategories)
         }
     }
@@ -119,4 +136,29 @@ class ListViewModel : ViewModel(), LifecycleObserver {
             )
         }
     }
+
+    private fun saveObjects(listProducts: List<Product>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (!dbm.getAllCategories().isNullOrEmpty()) {
+                dbm.clearTable()
+            }
+            listProducts.forEach { product ->
+                val categoryEntity = CategoryEntity(product.category.id, product.category.name, product.category.position)
+                val productEntity = ProductEntity(product.id, product.name, product.description, product.image, product.price, product.isAvailable, categoryEntity)
+                dbm.insert(productEntity)
+            }
+        }
+    }
+
+    private fun mapProductsBD(listProdEnt: MutableList<ProductEntity>) {
+        val listProduct: MutableList<Product> = arrayListOf()
+        listProdEnt.forEach { productEnt ->
+            val category = Category(productEnt.category.idCaEn, productEnt.category.nameCaEn, productEnt.category.position)
+            val product = Product(productEnt.id, productEnt.name, productEnt.description, productEnt.image, productEnt.price, productEnt.isAvailable, category)
+            listProduct.add(product)
+        }
+        products = listProduct
+        _viewState.postValue(ListViewState.ItemsLoaded(createCategoriesList()))
+    }
+
 }
